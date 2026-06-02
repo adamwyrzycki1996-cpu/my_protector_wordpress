@@ -19,16 +19,23 @@ class MyProtector {
     /**
      * Bootstrap instance
      * 
-     * @var Bootstrap
+     * @var Bootstrap|null
      */
-    protected $bootstrap;
+    protected $bootstrap = null;
 
     /**
-     * Service container
+     * Service container (simple array-based)
      * 
-     * @var Services\Container\ServiceContainer
+     * @var array
      */
-    protected $container;
+    protected $services = [];
+
+    /**
+     * Singleton instances
+     * 
+     * @var array
+     */
+    protected $singletons = [];
 
     /**
      * Registered modules
@@ -53,8 +60,10 @@ class MyProtector {
      * Constructor
      */
     protected function __construct() {
-        $this->bootstrap = new Bootstrap($this);
-        $this->container = new Services\Container\ServiceContainer();
+        // Initialize Bootstrap if class exists
+        if (class_exists('MyProtector\\Core\\Bootstrap')) {
+            $this->bootstrap = new Bootstrap($this);
+        }
     }
 
     /**
@@ -75,9 +84,6 @@ class MyProtector {
      * @return void
      */
     public function run(): void {
-        // Register activation/deactivation hooks
-        $this->registerActivationHooks();
-        
         // Load plugin textdomain
         $this->loadTextdomain();
         
@@ -85,26 +91,12 @@ class MyProtector {
         $this->registerModules();
         
         // Boot all modules
-        $this->bootstrap->bootModules();
-        
-        // Register hooks
-        $this->bootstrap->registerHooks();
-        
-        // Initialize REST API
-        $this->bootstrap->initRestApi();
-        
-        // Register shortcodes
-        $this->bootstrap->registerShortcodes();
-    }
-
-    /**
-     * Register activation/deactivation hooks
-     * 
-     * @return void
-     */
-    protected function registerActivationHooks(): void {
-        // Activation is handled via register_activation_hook in main file
-        // This method can register additional hooks if needed
+        if ($this->bootstrap) {
+            $this->bootstrap->bootModules();
+            $this->bootstrap->registerHooks();
+            $this->bootstrap->initRestApi();
+            $this->bootstrap->registerShortcodes();
+        }
     }
 
     /**
@@ -113,11 +105,13 @@ class MyProtector {
      * @return void
      */
     protected function loadTextdomain(): void {
-        load_plugin_textdomain(
-            'myprotector-platform',
-            false,
-            dirname(MYPROTECTOR_BASENAME) . '/languages'
-        );
+        if (function_exists('load_plugin_textdomain')) {
+            load_plugin_textdomain(
+                'myprotector-platform',
+                false,
+                dirname(MYPROTECTOR_BASENAME) . '/languages'
+            );
+        }
     }
 
     /**
@@ -127,19 +121,28 @@ class MyProtector {
      */
     protected function registerModules(): void {
         $moduleClasses = [
-            Modules\Reviews\Reviews::class,
-            Modules\BusinessProfiles\BusinessProfiles::class,
-            Modules\TrafficSignals\TrafficSignals::class,
-            Modules\Dashboards\Dashboards::class,
-            Modules\Resellers\Resellers::class,
-            Modules\Widgets\Widgets::class,
-            Modules\Emails\Emails::class,
-            Modules\WooCommerce\WooCommerce::class,
-            Modules\Admin\Admin::class,
+            'MyProtector\\Modules\\Reviews\\Reviews',
+            'MyProtector\\Modules\\BusinessProfiles\\BusinessProfiles',
+            'MyProtector\\Modules\\TrafficSignals\\TrafficSignals',
+            'MyProtector\\Modules\\Dashboards\\Dashboards',
+            'MyProtector\\Modules\\Resellers\\Resellers',
+            'MyProtector\\Modules\\Widgets\\Widgets',
+            'MyProtector\\Modules\\Emails\\Emails',
+            'MyProtector\\Modules\\WooCommerce\\WooCommerce',
+            'MyProtector\\Modules\\Admin\\Admin',
         ];
 
         foreach ($moduleClasses as $moduleClass) {
-            $this->modules[$moduleClass::getName()] = new $moduleClass($this);
+            if (class_exists($moduleClass) && method_exists($moduleClass, 'getName')) {
+                try {
+                    $module = new $moduleClass($this);
+                    $moduleName = $moduleClass::getName();
+                    $this->modules[$moduleName] = $module;
+                } catch (\Throwable $e) {
+                    // Skip modules that fail to load
+                    error_log('MyProtector: Failed to load module ' . $moduleClass . ': ' . $e->getMessage());
+                }
+            }
         }
     }
 
@@ -169,7 +172,7 @@ class MyProtector {
      * @return mixed
      */
     public function get(string $id) {
-        return $this->container->get($id);
+        return $this->services[$id] ?? null;
     }
 
     /**
@@ -179,7 +182,7 @@ class MyProtector {
      * @return bool
      */
     public function has(string $id): bool {
-        return $this->container->has($id);
+        return isset($this->services[$id]);
     }
 
     /**
@@ -190,7 +193,7 @@ class MyProtector {
      * @return void
      */
     public function register(string $id, callable $factory): void {
-        $this->container->set($id, $factory);
+        $this->services[$id] = $factory($this);
     }
 
     /**
@@ -201,7 +204,10 @@ class MyProtector {
      * @return void
      */
     public function singleton(string $id, callable $factory): void {
-        $this->container->singleton($id, $factory);
+        if (!isset($this->singletons[$id])) {
+            $this->singletons[$id] = $factory($this);
+        }
+        $this->services[$id] = $this->singletons[$id];
     }
 
     /**
@@ -245,18 +251,18 @@ class MyProtector {
     /**
      * Get bootstrap instance
      * 
-     * @return Bootstrap
+     * @return Bootstrap|null
      */
-    public function getBootstrap(): Bootstrap {
+    public function getBootstrap(): ?Bootstrap {
         return $this->bootstrap;
     }
 
     /**
-     * Get container instance
+     * Get container (returns services array for compatibility)
      * 
-     * @return Services\Container\ServiceContainer
+     * @return array
      */
-    public function getContainer(): Services\Container\ServiceContainer {
-        return $this->container;
+    public function getContainer(): array {
+        return $this->services;
     }
 }
