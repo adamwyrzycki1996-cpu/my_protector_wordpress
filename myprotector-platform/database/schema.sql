@@ -1,90 +1,13 @@
 -- =====================================================
 -- MyProtector Platform - MySQL Database Schema
 -- Stage 1 - Core Tables
+-- Fixed Order for Foreign Keys
 -- =====================================================
 
--- Disable foreign key checks for clean installation
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- =====================================================
--- 1. wp_mp_businesses (Create first - others depend on it)
--- =====================================================
-DROP TABLE IF EXISTS wp_mp_businesses;
-CREATE TABLE wp_mp_businesses (
-    business_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    user_id BIGINT UNSIGNED NULL,
-    reseller_id BIGINT UNSIGNED NULL,
-    category_id BIGINT UNSIGNED NULL,
-    business_name VARCHAR(255) NOT NULL,
-    business_slug VARCHAR(255) NOT NULL,
-    business_description LONGTEXT NULL,
-    business_tagline VARCHAR(255) NULL,
-    business_email VARCHAR(255) NULL,
-    business_phone VARCHAR(50) NULL,
-    business_website VARCHAR(500) NULL,
-    address_line1 VARCHAR(255) NULL,
-    address_line2 VARCHAR(255) NULL,
-    city VARCHAR(100) NULL,
-    state VARCHAR(100) NULL,
-    postal_code VARCHAR(20) NULL,
-    country VARCHAR(2) NOT NULL DEFAULT 'US',
-    latitude DECIMAL(10, 8) NULL,
-    longitude DECIMAL(11, 8) NULL,
-    is_verified TINYINT(1) NOT NULL DEFAULT 0,
-    verified_at DATETIME NULL,
-    verified_by BIGINT UNSIGNED NULL,
-    business_status ENUM('pending', 'active', 'suspended', 'closed', 'archived') DEFAULT 'pending',
-    claim_status ENUM('unclaimed', 'claimed', 'verified') DEFAULT 'unclaimed',
-    total_reviews INT UNSIGNED NOT NULL DEFAULT 0,
-    approved_reviews INT UNSIGNED NOT NULL DEFAULT 0,
-    avg_rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    total_rating_sum INT UNSIGNED NOT NULL DEFAULT 0,
-    response_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
-    avg_response_time INT UNSIGNED NULL COMMENT 'in hours',
-    logo_url VARCHAR(500) NULL,
-    cover_image_url VARCHAR(500) NULL,
-    brand_color VARCHAR(7) NULL,
-    insurance_name VARCHAR(255) NULL,
-    insurance_url VARCHAR(500) NULL,
-    terms_url VARCHAR(500) NULL,
-    promise_page_url VARCHAR(500) NULL,
-    promise_page_title VARCHAR(255) NULL,
-    facebook_url VARCHAR(500) NULL,
-    twitter_url VARCHAR(500) NULL,
-    instagram_url VARCHAR(500) NULL,
-    linkedin_url VARCHAR(500) NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    first_review_at DATETIME NULL,
-    last_review_at DATETIME NULL,
-    woocommerce_id BIGINT UNSIGNED NULL,
-    woocommerce_shop_name VARCHAR(255) NULL,
-    is_featured TINYINT(1) NOT NULL DEFAULT 0,
-    featured_until DATETIME NULL,
-    deleted_at DATETIME NULL,
-    PRIMARY KEY (business_id),
-    UNIQUE KEY uk_business_slug (business_slug),
-    UNIQUE KEY uk_business_email (business_email),
-    INDEX idx_user_id (user_id),
-    INDEX idx_reseller_id (reseller_id),
-    INDEX idx_category_id (category_id),
-    INDEX idx_business_status (business_status),
-    INDEX idx_claim_status (claim_status),
-    INDEX idx_is_verified (is_verified),
-    INDEX idx_is_featured (is_featured),
-    INDEX idx_avg_rating (avg_rating),
-    INDEX idx_total_reviews (total_reviews),
-    INDEX idx_created_at (created_at),
-    INDEX idx_country (country),
-    INDEX idx_city (city),
-    FULLTEXT INDEX idx_fulltext_search (business_name, business_description, business_tagline),
-    CONSTRAINT fk_businesses_user FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE SET NULL,
-    CONSTRAINT fk_businesses_reseller FOREIGN KEY (reseller_id) REFERENCES wp_mp_resellers(reseller_id) ON DELETE SET NULL,
-    CONSTRAINT fk_businesses_category FOREIGN KEY (category_id) REFERENCES wp_terms(term_id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
-
--- =====================================================
--- 2. wp_mp_resellers (No foreign keys to other custom tables)
+-- STEP 1: wp_mp_resellers (No FK to other custom tables)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_resellers;
 CREATE TABLE wp_mp_resellers (
@@ -129,12 +52,84 @@ CREATE TABLE wp_mp_resellers (
     INDEX idx_reseller_status (reseller_status),
     INDEX idx_commission_tier (commission_tier),
     INDEX idx_total_earnings (total_earnings),
-    INDEX idx_created_at (created_at),
-    CONSTRAINT fk_resellers_user FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- =====================================================
--- 3. wp_mp_traffic_signals (Depends on wp_mp_businesses)
+-- STEP 2: wp_mp_businesses (Now can reference wp_mp_resellers)
+-- =====================================================
+DROP TABLE IF EXISTS wp_mp_businesses;
+CREATE TABLE wp_mp_businesses (
+    business_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NULL,
+    reseller_id BIGINT UNSIGNED NULL,
+    category_id BIGINT UNSIGNED NULL,
+    business_name VARCHAR(255) NOT NULL,
+    business_slug VARCHAR(255) NOT NULL,
+    business_description LONGTEXT NULL,
+    business_tagline VARCHAR(255) NULL,
+    business_email VARCHAR(255) NULL,
+    business_phone VARCHAR(50) NULL,
+    business_website VARCHAR(500) NULL,
+    address_line1 VARCHAR(255) NULL,
+    address_line2 VARCHAR(255) NULL,
+    city VARCHAR(100) NULL,
+    state VARCHAR(100) NULL,
+    postal_code VARCHAR(20) NULL,
+    country VARCHAR(2) NOT NULL DEFAULT 'US',
+    latitude DECIMAL(10, 8) NULL,
+    longitude DECIMAL(11, 8) NULL,
+    is_verified TINYINT(1) NOT NULL DEFAULT 0,
+    verified_at DATETIME NULL,
+    verified_by BIGINT UNSIGNED NULL,
+    business_status ENUM('pending', 'active', 'suspended', 'closed', 'archived') DEFAULT 'pending',
+    claim_status ENUM('unclaimed', 'claimed', 'verified') DEFAULT 'unclaimed',
+    total_reviews INT UNSIGNED NOT NULL DEFAULT 0,
+    approved_reviews INT UNSIGNED NOT NULL DEFAULT 0,
+    avg_rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    total_rating_sum INT UNSIGNED NOT NULL DEFAULT 0,
+    response_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    avg_response_time INT UNSIGNED NULL,
+    logo_url VARCHAR(500) NULL,
+    cover_image_url VARCHAR(500) NULL,
+    brand_color VARCHAR(7) NULL,
+    insurance_name VARCHAR(255) NULL,
+    insurance_url VARCHAR(500) NULL,
+    terms_url VARCHAR(500) NULL,
+    promise_page_url VARCHAR(500) NULL,
+    promise_page_title VARCHAR(255) NULL,
+    facebook_url VARCHAR(500) NULL,
+    twitter_url VARCHAR(500) NULL,
+    instagram_url VARCHAR(500) NULL,
+    linkedin_url VARCHAR(500) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    first_review_at DATETIME NULL,
+    last_review_at DATETIME NULL,
+    woocommerce_id BIGINT UNSIGNED NULL,
+    woocommerce_shop_name VARCHAR(255) NULL,
+    is_featured TINYINT(1) NOT NULL DEFAULT 0,
+    featured_until DATETIME NULL,
+    deleted_at DATETIME NULL,
+    PRIMARY KEY (business_id),
+    UNIQUE KEY uk_business_slug (business_slug),
+    UNIQUE KEY uk_business_email (business_email),
+    INDEX idx_user_id (user_id),
+    INDEX idx_reseller_id (reseller_id),
+    INDEX idx_category_id (category_id),
+    INDEX idx_business_status (business_status),
+    INDEX idx_claim_status (claim_status),
+    INDEX idx_is_verified (is_verified),
+    INDEX idx_is_featured (is_featured),
+    INDEX idx_avg_rating (avg_rating),
+    INDEX idx_total_reviews (total_reviews),
+    INDEX idx_created_at (created_at),
+    INDEX idx_country (country),
+    INDEX idx_city (city)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+
+-- =====================================================
+-- STEP 3: wp_mp_traffic_signals (Depends on wp_mp_businesses)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_traffic_signals;
 CREATE TABLE wp_mp_traffic_signals (
@@ -173,12 +168,11 @@ CREATE TABLE wp_mp_traffic_signals (
     INDEX idx_traffic_light_color (traffic_light_color),
     INDEX idx_trust_score (trust_score),
     INDEX idx_is_auto (is_auto_calculated),
-    INDEX idx_manual_override (manual_override),
-    CONSTRAINT fk_traffic_signals_business FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE CASCADE
+    INDEX idx_manual_override (manual_override)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- =====================================================
--- 4. wp_mp_reviews
+-- STEP 4: wp_mp_reviews (Depends on wp_mp_businesses)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_reviews;
 CREATE TABLE wp_mp_reviews (
@@ -215,15 +209,11 @@ CREATE TABLE wp_mp_reviews (
     INDEX idx_created_at (created_at),
     INDEX idx_business_status (business_id, review_status),
     INDEX idx_business_rating (business_id, review_rating),
-    INDEX idx_status_published (review_status, published_at),
-    FULLTEXT INDEX idx_fulltext_content (review_title, review_content),
-    CONSTRAINT fk_reviews_business FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE CASCADE,
-    CONSTRAINT fk_reviews_user FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE,
-    CONSTRAINT chk_review_rating CHECK (review_rating BETWEEN 1 AND 5)
+    INDEX idx_status_published (review_status, published_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- =====================================================
--- 5. wp_mp_review_images
+-- STEP 5: wp_mp_review_images (Depends on wp_mp_reviews)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_review_images;
 CREATE TABLE wp_mp_review_images (
@@ -251,12 +241,11 @@ CREATE TABLE wp_mp_review_images (
     INDEX idx_review_id (review_id),
     INDEX idx_image_type (image_type),
     INDEX idx_uploaded_at (uploaded_at),
-    INDEX idx_is_approved (is_approved),
-    CONSTRAINT fk_review_images_review FOREIGN KEY (review_id) REFERENCES wp_mp_reviews(review_id) ON DELETE CASCADE
+    INDEX idx_is_approved (is_approved)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- =====================================================
--- 6. wp_mp_commissions
+-- STEP 6: wp_mp_commissions (Depends on wp_mp_resellers and wp_mp_businesses)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_commissions;
 CREATE TABLE wp_mp_commissions (
@@ -291,13 +280,11 @@ CREATE TABLE wp_mp_commissions (
     INDEX idx_created_at (created_at),
     INDEX idx_paid_at (paid_at),
     INDEX idx_reseller_status (reseller_id, commission_status),
-    INDEX idx_status_created (commission_status, created_at),
-    CONSTRAINT fk_commissions_reseller FOREIGN KEY (reseller_id) REFERENCES wp_mp_resellers(reseller_id) ON DELETE CASCADE,
-    CONSTRAINT fk_commissions_business FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE SET NULL
+    INDEX idx_status_created (commission_status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- =====================================================
--- 7. wp_mp_notifications
+-- STEP 7: wp_mp_notifications (Depends on wp_users only)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_notifications;
 CREATE TABLE wp_mp_notifications (
@@ -333,12 +320,11 @@ CREATE TABLE wp_mp_notifications (
     INDEX idx_expires_at (expires_at),
     INDEX idx_user_read (user_id, is_read),
     INDEX idx_user_type (user_id, notification_type),
-    INDEX idx_user_created (user_id, created_at),
-    CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE
+    INDEX idx_user_created (user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
 -- =====================================================
--- 8. wp_mp_email_logs
+-- STEP 8: wp_mp_email_logs (Standalone - no FK to custom tables)
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_email_logs;
 CREATE TABLE wp_mp_email_logs (
@@ -398,35 +384,72 @@ CREATE TABLE wp_mp_email_logs (
     INDEX idx_category_status (email_category, send_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
 
--- Re-enable foreign key checks
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================
--- Optional: Create views for common queries
+-- ADD FOREIGN KEYS AFTER ALL TABLES ARE CREATED
+-- This ensures referential integrity works properly
 -- =====================================================
 
--- Business with trust status view
+-- Add FK to wp_mp_businesses for reseller_id
+ALTER TABLE wp_mp_businesses 
+ADD CONSTRAINT fk_businesses_reseller 
+FOREIGN KEY (reseller_id) REFERENCES wp_mp_resellers(reseller_id) ON DELETE SET NULL;
+
+-- Add FK to wp_mp_traffic_signals
+ALTER TABLE wp_mp_traffic_signals 
+ADD CONSTRAINT fk_traffic_signals_business 
+FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE CASCADE;
+
+-- Add FK to wp_mp_reviews
+ALTER TABLE wp_mp_reviews 
+ADD CONSTRAINT fk_reviews_business 
+FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE CASCADE;
+
+ALTER TABLE wp_mp_reviews 
+ADD CONSTRAINT fk_reviews_user 
+FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
+
+-- Add FK to wp_mp_review_images
+ALTER TABLE wp_mp_review_images 
+ADD CONSTRAINT fk_review_images_review 
+FOREIGN KEY (review_id) REFERENCES wp_mp_reviews(review_id) ON DELETE CASCADE;
+
+-- Add FK to wp_mp_commissions
+ALTER TABLE wp_mp_commissions 
+ADD CONSTRAINT fk_commissions_reseller 
+FOREIGN KEY (reseller_id) REFERENCES wp_mp_resellers(reseller_id) ON DELETE CASCADE;
+
+ALTER TABLE wp_mp_commissions 
+ADD CONSTRAINT fk_commissions_business 
+FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE SET NULL;
+
+-- Add FK to wp_mp_notifications
+ALTER TABLE wp_mp_notifications 
+ADD CONSTRAINT fk_notifications_user 
+FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
+
+-- =====================================================
+-- Optional: Create useful views
+-- =====================================================
+
+-- Business with trust status
 CREATE OR REPLACE VIEW wp_mp_businesses_with_trust AS
 SELECT 
-    b.*,
+    b.business_id,
+    b.business_name,
+    b.business_slug,
+    b.business_status,
+    b.total_reviews,
+    b.avg_rating,
+    b.logo_url,
     ts.trust_status,
     ts.traffic_light_color,
-    ts.trust_score
+    ts.trust_score,
+    ts.show_traffic_light
 FROM wp_mp_businesses b
 LEFT JOIN wp_mp_traffic_signals ts ON b.business_id = ts.business_id
 WHERE b.deleted_at IS NULL;
-
--- Business review stats view
-CREATE OR REPLACE VIEW wp_mp_business_stats AS
-SELECT 
-    business_id,
-    COUNT(*) as total_reviews,
-    SUM(review_rating) as total_rating,
-    AVG(review_rating) as avg_rating,
-    SUM(CASE WHEN review_status = 'approved' THEN 1 ELSE 0 END) as approved_count
-FROM wp_mp_reviews
-WHERE deleted_at IS NULL
-GROUP BY business_id;
 
 -- =====================================================
 -- End of Schema
