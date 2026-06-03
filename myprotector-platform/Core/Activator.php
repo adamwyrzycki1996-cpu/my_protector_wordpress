@@ -91,11 +91,14 @@ class Activator {
             terms_url varchar(500),
             promise_page_url varchar(500),
             promise_page_title varchar(255),
-            status enum('pending','claimed','verified','suspended') default 'pending',
+            status enum('pending','approved','rejected','suspended') default 'pending',
             trust_score decimal(3,2) default 0.00,
             total_reviews int(10) unsigned default 0,
             avg_rating decimal(2,1) default 0.0,
             is_featured tinyint(1) default 0,
+            rejection_reason text,
+            approved_by bigint(20) unsigned default 0,
+            approved_at datetime,
             created_at datetime default current_timestamp,
             updated_at datetime default current_timestamp on update current_timestamp,
             PRIMARY KEY  (company_id),
@@ -103,6 +106,29 @@ class Activator {
             KEY idx_status (status),
             KEY idx_category (company_category),
             KEY idx_user (user_id)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // Company documents table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_company_documents (
+            document_id bigint(20) unsigned NOT NULL auto_increment,
+            company_id bigint(20) unsigned NOT NULL,
+            document_type enum('insurance_certificate','business_license','incorporation','other') default 'other',
+            document_name varchar(255) NOT NULL,
+            document_url varchar(500) NOT NULL,
+            document_path varchar(500),
+            mime_type varchar(100),
+            file_size int(10) unsigned default 0,
+            is_verified tinyint(1) default 0,
+            verified_by bigint(20) unsigned default 0,
+            verified_at datetime,
+            rejection_reason text,
+            uploaded_by bigint(20) unsigned NOT NULL,
+            created_at datetime default current_timestamp,
+            updated_at datetime default current_timestamp on update current_timestamp,
+            PRIMARY KEY  (document_id),
+            KEY idx_company (company_id),
+            KEY idx_type (document_type)
         ) $charset_collate;";
         dbDelta($sql);
         
