@@ -129,6 +129,7 @@ class MyProtector {
         $moduleClasses = [
             Modules\Reviews\Reviews::class,
             Modules\BusinessProfiles\BusinessProfiles::class,
+            Modules\TrustSignals\TrustSignals::class,
             Modules\TrafficSignals\TrafficSignals::class,
             Modules\Dashboards\Dashboards::class,
             Modules\Resellers\Resellers::class,
@@ -139,7 +140,9 @@ class MyProtector {
         ];
 
         foreach ($moduleClasses as $moduleClass) {
-            $this->modules[$moduleClass::getName()] = new $moduleClass($this);
+            if (class_exists($moduleClass)) {
+                $this->modules[$moduleClass::getName()] = new $moduleClass($this);
+            }
         }
     }
 
