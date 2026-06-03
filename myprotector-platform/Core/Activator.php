@@ -183,12 +183,102 @@ class Activator {
             image_id bigint(20) unsigned NOT NULL auto_increment,
             review_id bigint(20) unsigned NOT NULL,
             image_url varchar(500) NOT NULL,
+            image_path varchar(500),
             image_type enum('review','blacklist_evidence') default 'review',
             caption varchar(255),
             is_approved tinyint(1) default 0,
-            uploaded_at datetime default current_timestamp,
+            uploaded_by bigint(20) unsigned NOT NULL,
+            created_at datetime default current_timestamp,
             PRIMARY KEY  (image_id),
-            KEY idx_review (review_id)
+            KEY idx_review (review_id),
+            KEY idx_uploaded_by (uploaded_by)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // Review helpful marks table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_review_helpful (
+            id bigint(20) unsigned NOT NULL auto_increment,
+            review_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            created_at datetime default current_timestamp,
+            PRIMARY KEY  (id),
+            UNIQUE KEY unique_mark (review_id, user_id),
+            KEY idx_review (review_id),
+            KEY idx_user (user_id)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // Review reports table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_review_reports (
+            report_id bigint(20) unsigned NOT NULL auto_increment,
+            review_id bigint(20) unsigned NOT NULL,
+            user_id bigint(20) unsigned NOT NULL,
+            reason text NOT NULL,
+            ip_address varchar(45),
+            status enum('pending','reviewed','dismissed') default 'pending',
+            reviewed_by bigint(20) unsigned default 0,
+            reviewed_at datetime,
+            created_at datetime default current_timestamp,
+            PRIMARY KEY  (report_id),
+            KEY idx_review (review_id),
+            KEY idx_user (user_id),
+            KEY idx_status (status)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // Review moderation log table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_review_moderation_log (
+            log_id bigint(20) unsigned NOT NULL auto_increment,
+            review_id bigint(20) unsigned NOT NULL,
+            action varchar(50) NOT NULL,
+            notes text,
+            moderated_by bigint(20) unsigned NOT NULL,
+            ip_address varchar(45),
+            created_at datetime default current_timestamp,
+            PRIMARY KEY  (log_id),
+            KEY idx_review (review_id),
+            KEY idx_moderated_by (moderated_by)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // User trust levels table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_user_trust_levels (
+            trust_id bigint(20) unsigned NOT NULL auto_increment,
+            user_id bigint(20) unsigned NOT NULL,
+            trust_level enum('unverified','verified','premium','trusted') default 'unverified',
+            verified_at datetime,
+            verification_method varchar(50),
+            created_at datetime default current_timestamp,
+            updated_at datetime default current_timestamp on update current_timestamp,
+            PRIMARY KEY  (trust_id),
+            UNIQUE KEY idx_user (user_id)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // Trust level history table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_trust_level_history (
+            history_id bigint(20) unsigned NOT NULL auto_increment,
+            user_id bigint(20) unsigned NOT NULL,
+            new_level enum('unverified','verified','premium','trusted') NOT NULL,
+            old_level enum('unverified','verified','premium','trusted'),
+            changed_by bigint(20) unsigned default 0,
+            ip_address varchar(45),
+            created_at datetime default current_timestamp,
+            PRIMARY KEY  (history_id),
+            KEY idx_user (user_id)
+        ) $charset_collate;";
+        dbDelta($sql);
+        
+        // IP ban list table
+        $sql = "CREATE TABLE {$wpdb->prefix}mp_ip_ban_list (
+            ban_id bigint(20) unsigned NOT NULL auto_increment,
+            ip_address varchar(45) NOT NULL,
+            reason text,
+            banned_by bigint(20) unsigned default 0,
+            is_active tinyint(1) default 1,
+            created_at datetime default current_timestamp,
+            PRIMARY KEY  (ban_id),
+            UNIQUE KEY idx_ip (ip_address)
         ) $charset_collate;";
         dbDelta($sql);
         
