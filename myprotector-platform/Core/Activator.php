@@ -346,6 +346,21 @@ class Activator {
      * @return void
      */
     protected function createRoles(): void {
+        // Use the comprehensive RoleManager
+        if (class_exists('MyProtector\\Core\\RoleManager')) {
+            RoleManager::registerRoles();
+        } else {
+            // Fallback: Basic role registration
+            $this->createBasicRoles();
+        }
+    }
+
+    /**
+     * Fallback basic role creation
+     * 
+     * @return void
+     */
+    private function createBasicRoles(): void {
         // Admin role
         add_role('mp_admin', 'MyProtector Admin', [
             'read' => true,
@@ -358,7 +373,6 @@ class Activator {
         // Customer support role
         add_role('mp_support', 'MyProtector Support', [
             'read' => true,
-            'edit_posts' => false,
         ]);
 
         // Business role
@@ -368,6 +382,11 @@ class Activator {
 
         // Reseller role
         add_role('mp_reseller', 'MyProtector Reseller', [
+            'read' => true,
+        ]);
+
+        // Individual role
+        add_role('mp_individual', 'MyProtector Individual', [
             'read' => true,
         ]);
     }
@@ -384,48 +403,81 @@ class Activator {
             return;
         }
 
+        // Use RoleManager to add capabilities
+        if (class_exists('MyProtector\\Core\\RoleManager')) {
+            RoleManager::addCapabilitiesToAdmin();
+            return;
+        }
+
+        // Fallback: Basic capabilities
         $capabilities = [
-            // Core
+            // Master
             'manage_myprotector',
-            'edit_myprotector_settings',
-            'view_myprotector_reports',
             
             // Reviews
-            'mp_edit_reviews',
-            'mp_delete_reviews',
+            'mp_edit_all_reviews',
+            'mp_delete_all_reviews',
             'mp_moderate_reviews',
             'mp_view_all_reviews',
             'mp_feature_reviews',
             
             // Companies
-            'mp_edit_companies',
+            'mp_edit_all_companies',
             'mp_delete_companies',
             'mp_verify_companies',
-            'mp_approve_companies',
+            'mp_approve_verification',
             'mp_override_trust_status',
             
             // Users
-            'mp_manage_users',
+            'mp_manage_all_users',
             'mp_view_users',
             'mp_ban_users',
+            'mp_export_user_data',
             
             // Resellers
             'mp_manage_resellers',
-            'mp_view_resellers',
+            'mp_approve_reseller_applications',
             'mp_release_commissions',
+            'mp_view_reseller_reports',
             
             // Blacklist
             'mp_manage_blacklist',
-            'mp_approve_blacklist',
+            'mp_approve_blacklist_entries',
             
             // Support
-            'mp_manage_tickets',
-            'mp_view_tickets',
+            'mp_manage_all_tickets',
+            'mp_manage_sla_settings',
+            'mp_assign_tickets',
             
-            // System
-            'mp_export_data',
+            // Communications
+            'mp_manage_email_templates',
+            'mp_send_email_campaigns',
+            'mp_view_email_logs',
+            
+            // Financial
+            'mp_view_financial_reports',
+            'mp_manage_invoices',
+            'mp_process_payouts',
+            
+            // SEO
+            'mp_manage_page_seo',
+            'mp_manage_sitemap',
+            
+            // Settings
+            'mp_manage_general_settings',
+            'mp_manage_email_settings',
+            'mp_manage_widget_settings',
+            'mp_manage_api_keys',
+            'mp_manage_security_settings',
+            
+            // Tools
+            'mp_access_import_export',
+            'mp_clear_cache',
+            'mp_view_debug_logs',
+            
+            // Audit
             'mp_view_audit_log',
-            'mp_manage_settings',
+            'mp_export_audit_data',
         ];
 
         foreach ($capabilities as $cap) {

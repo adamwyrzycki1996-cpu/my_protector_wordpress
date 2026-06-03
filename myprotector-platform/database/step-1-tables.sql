@@ -1,13 +1,13 @@
 -- =====================================================
 -- MyProtector Platform - MySQL Database Schema
--- Stage 1 - Core Tables
--- Fixed Order for Foreign Keys
+-- Step 1: Create Tables (No Foreign Keys)
+-- Run this file first, then run step-2-foreign-keys.sql
 -- =====================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- =====================================================
--- STEP 1: wp_mp_resellers (No FK to other custom tables)
+-- 1. wp_mp_resellers
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_resellers;
 CREATE TABLE wp_mp_resellers (
@@ -20,8 +20,6 @@ CREATE TABLE wp_mp_resellers (
     commission_tier ENUM('standard', 'silver', 'gold', 'platinum') NOT NULL DEFAULT 'standard',
     custom_commission_rates JSON NULL,
     total_referrals INT UNSIGNED NOT NULL DEFAULT 0,
-    total_conversions INT UNSIGNED NOT NULL DEFAULT 0,
-    conversion_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
     total_earnings DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     pending_earnings DECIMAL(12,2) NOT NULL DEFAULT 0.00,
     paid_earnings DECIMAL(12,2) NOT NULL DEFAULT 0.00,
@@ -39,7 +37,6 @@ CREATE TABLE wp_mp_resellers (
     tracking_domain VARCHAR(255) NULL,
     utm_parameters JSON NULL,
     total_clicks INT UNSIGNED NOT NULL DEFAULT 0,
-    total_conversions INT UNSIGNED NOT NULL DEFAULT 0,
     avg_order_value DECIMAL(10,2) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -49,14 +46,11 @@ CREATE TABLE wp_mp_resellers (
     PRIMARY KEY (reseller_id),
     UNIQUE KEY uk_referral_code (referral_code),
     INDEX idx_user_id (user_id),
-    INDEX idx_reseller_status (reseller_status),
-    INDEX idx_commission_tier (commission_tier),
-    INDEX idx_total_earnings (total_earnings),
-    INDEX idx_created_at (created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_reseller_status (reseller_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 2: wp_mp_businesses (Now can reference wp_mp_resellers)
+-- 2. wp_mp_businesses
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_businesses;
 CREATE TABLE wp_mp_businesses (
@@ -118,18 +112,12 @@ CREATE TABLE wp_mp_businesses (
     INDEX idx_reseller_id (reseller_id),
     INDEX idx_category_id (category_id),
     INDEX idx_business_status (business_status),
-    INDEX idx_claim_status (claim_status),
-    INDEX idx_is_verified (is_verified),
-    INDEX idx_is_featured (is_featured),
     INDEX idx_avg_rating (avg_rating),
-    INDEX idx_total_reviews (total_reviews),
-    INDEX idx_created_at (created_at),
-    INDEX idx_country (country),
-    INDEX idx_city (city)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_total_reviews (total_reviews)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 3: wp_mp_traffic_signals (Depends on wp_mp_businesses)
+-- 3. wp_mp_traffic_signals
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_traffic_signals;
 CREATE TABLE wp_mp_traffic_signals (
@@ -165,14 +153,11 @@ CREATE TABLE wp_mp_traffic_signals (
     PRIMARY KEY (signal_id),
     UNIQUE KEY uk_business_id (business_id),
     INDEX idx_trust_status (trust_status),
-    INDEX idx_traffic_light_color (traffic_light_color),
-    INDEX idx_trust_score (trust_score),
-    INDEX idx_is_auto (is_auto_calculated),
-    INDEX idx_manual_override (manual_override)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_trust_score (trust_score)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 4: wp_mp_reviews (Depends on wp_mp_businesses)
+-- 4. wp_mp_reviews
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_reviews;
 CREATE TABLE wp_mp_reviews (
@@ -207,13 +192,11 @@ CREATE TABLE wp_mp_reviews (
     INDEX idx_rating (review_rating),
     INDEX idx_published_at (published_at),
     INDEX idx_created_at (created_at),
-    INDEX idx_business_status (business_id, review_status),
-    INDEX idx_business_rating (business_id, review_rating),
-    INDEX idx_status_published (review_status, published_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_business_status (business_id, review_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 5: wp_mp_review_images (Depends on wp_mp_reviews)
+-- 5. wp_mp_review_images
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_review_images;
 CREATE TABLE wp_mp_review_images (
@@ -242,10 +225,10 @@ CREATE TABLE wp_mp_review_images (
     INDEX idx_image_type (image_type),
     INDEX idx_uploaded_at (uploaded_at),
     INDEX idx_is_approved (is_approved)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 6: wp_mp_commissions (Depends on wp_mp_resellers and wp_mp_businesses)
+-- 6. wp_mp_commissions
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_commissions;
 CREATE TABLE wp_mp_commissions (
@@ -274,17 +257,14 @@ CREATE TABLE wp_mp_commissions (
     PRIMARY KEY (commission_id),
     INDEX idx_reseller_id (reseller_id),
     INDEX idx_business_id (business_id),
-    INDEX idx_referral_id (referral_id),
     INDEX idx_commission_status (commission_status),
     INDEX idx_commission_type (commission_type),
     INDEX idx_created_at (created_at),
-    INDEX idx_paid_at (paid_at),
-    INDEX idx_reseller_status (reseller_id, commission_status),
-    INDEX idx_status_created (commission_status, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_reseller_status (reseller_id, commission_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 7: wp_mp_notifications (Depends on wp_users only)
+-- 7. wp_mp_notifications
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_notifications;
 CREATE TABLE wp_mp_notifications (
@@ -317,14 +297,11 @@ CREATE TABLE wp_mp_notifications (
     INDEX idx_delivery_status (delivery_status),
     INDEX idx_priority (priority),
     INDEX idx_created_at (created_at),
-    INDEX idx_expires_at (expires_at),
-    INDEX idx_user_read (user_id, is_read),
-    INDEX idx_user_type (user_id, notification_type),
-    INDEX idx_user_created (user_id, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_user_read (user_id, is_read)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
--- STEP 8: wp_mp_email_logs (Standalone - no FK to custom tables)
+-- 8. wp_mp_email_logs
 -- =====================================================
 DROP TABLE IF EXISTS wp_mp_email_logs;
 CREATE TABLE wp_mp_email_logs (
@@ -369,88 +346,15 @@ CREATE TABLE wp_mp_email_logs (
     PRIMARY KEY (log_id),
     INDEX idx_recipient_email (recipient_email),
     INDEX idx_recipient_id (recipient_id),
-    INDEX idx_recipient_type (recipient_type),
     INDEX idx_email_template (email_template),
-    INDEX idx_email_type (email_type),
-    INDEX idx_email_category (email_category),
     INDEX idx_send_status (send_status),
     INDEX idx_queued_at (queued_at),
-    INDEX idx_sent_at (sent_at),
-    INDEX idx_delivered_at (delivered_at),
-    INDEX idx_opened_at (opened_at),
-    INDEX idx_status_queued (send_status, queued_at),
-    INDEX idx_recipient_status (recipient_email, send_status),
-    INDEX idx_template_status (email_template, send_status),
-    INDEX idx_category_status (email_category, send_status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
+    INDEX idx_sent_at (sent_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================
--- ADD FOREIGN KEYS AFTER ALL TABLES ARE CREATED
--- This ensures referential integrity works properly
--- =====================================================
-
--- Add FK to wp_mp_businesses for reseller_id
-ALTER TABLE wp_mp_businesses 
-ADD CONSTRAINT fk_businesses_reseller 
-FOREIGN KEY (reseller_id) REFERENCES wp_mp_resellers(reseller_id) ON DELETE SET NULL;
-
--- Add FK to wp_mp_traffic_signals
-ALTER TABLE wp_mp_traffic_signals 
-ADD CONSTRAINT fk_traffic_signals_business 
-FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE CASCADE;
-
--- Add FK to wp_mp_reviews
-ALTER TABLE wp_mp_reviews 
-ADD CONSTRAINT fk_reviews_business 
-FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE CASCADE;
-
-ALTER TABLE wp_mp_reviews 
-ADD CONSTRAINT fk_reviews_user 
-FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
-
--- Add FK to wp_mp_review_images
-ALTER TABLE wp_mp_review_images 
-ADD CONSTRAINT fk_review_images_review 
-FOREIGN KEY (review_id) REFERENCES wp_mp_reviews(review_id) ON DELETE CASCADE;
-
--- Add FK to wp_mp_commissions
-ALTER TABLE wp_mp_commissions 
-ADD CONSTRAINT fk_commissions_reseller 
-FOREIGN KEY (reseller_id) REFERENCES wp_mp_resellers(reseller_id) ON DELETE CASCADE;
-
-ALTER TABLE wp_mp_commissions 
-ADD CONSTRAINT fk_commissions_business 
-FOREIGN KEY (business_id) REFERENCES wp_mp_businesses(business_id) ON DELETE SET NULL;
-
--- Add FK to wp_mp_notifications
-ALTER TABLE wp_mp_notifications 
-ADD CONSTRAINT fk_notifications_user 
-FOREIGN KEY (user_id) REFERENCES wp_users(ID) ON DELETE CASCADE;
-
--- =====================================================
--- Optional: Create useful views
--- =====================================================
-
--- Business with trust status
-CREATE OR REPLACE VIEW wp_mp_businesses_with_trust AS
-SELECT 
-    b.business_id,
-    b.business_name,
-    b.business_slug,
-    b.business_status,
-    b.total_reviews,
-    b.avg_rating,
-    b.logo_url,
-    ts.trust_status,
-    ts.traffic_light_color,
-    ts.trust_score,
-    ts.show_traffic_light
-FROM wp_mp_businesses b
-LEFT JOIN wp_mp_traffic_signals ts ON b.business_id = ts.business_id
-WHERE b.deleted_at IS NULL;
-
--- =====================================================
--- End of Schema
+-- STEP 1 COMPLETE!
+-- Now run: step-2-foreign-keys.sql
 -- =====================================================
